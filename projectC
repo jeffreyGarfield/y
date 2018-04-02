@@ -1,0 +1,87 @@
+#include <stdio.h>
+#include <avr/io.h>
+#include "lcd.h"
+#include <util/delay.h>
+static FILE lcd_stdout=FDEV_SETUP_STREAM(lcd_putc,NULL,_FDEV_SETUP_WRITE);
+
+#define PUSHED 1
+#define RIGHT_BUTTON ((PINA&_BV(PIN3))>>3)
+#define LEFT_BUTTON ((PINA&_BV(PIN0))>>0)
+
+#define RIGHTMOST 0b10000000
+#define LEFTMOST 0b00000001
+
+
+void newstate(void);
+void adjustLEDs(void);
+void setLEDs(int);
+
+
+enum states{left_serve, right_serve, moving_left, moving_right};
+char state;
+char leds;
+
+int main (void){
+    int x = 0;
+    lcd_init();
+    stdout = &lcd_stdout;
+
+    DDRD = 0xFF;
+    DDRA = 0x10;
+    PORTA |= 0x10;
+
+    state = left_serve;
+    adjustLEDs();
+    setLEDs(leds);
+    while (1 ){
+        newstate();
+        adjustLEDs();
+        setLEDs(leds);
+        _delay_ms(1000);
+          x++;
+    }
+}
+void newstate(){
+        if (PUSHED==LEFT_BUTTON){
+            if (leds == LEFTMOST) state = moving_right;
+            else state = right_serve;
+        } else if (PUSHED == RIGHT_BUTTON) {
+            if (leds == RIGHTMOST) state = moving_left;
+            else state = left_serve;
+        } else if ((LEFT_BUTTON != PUSHED) && (RIGHT_BUTTON != PUSHED) && (leds == 0x00)){              if (state == moving_right) state = left_serve;
+            else state = right_serve;
+    }
+    else{}
+}
+
+void adjustLEDs(){
+    switch(state) {
+        case moving_left:
+            leds>>=1;
+        //  _delay_ms(500);
+            break;
+        case moving_right:
+            leds<<= 1;
+        //delay_ms(500);
+            break;
+        case left_serve:
+            leds = LEFTMOST;
+            break;
+        case right_serve:
+            leds = RIGHTMOST;
+            break;
+    }
+}
+
+void setLEDs (int leds){
+    int temp = leds;
+    temp &= 0x00FF;
+    temp = ~temp;
+    PORTD = temp;
+    temp = leds;
+    temp >>= 8;
+    temp &= 0x0003;
+    PORTC &= 0xFFFC;
+    PORTC |= temp;
+}
+
