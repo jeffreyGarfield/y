@@ -1,3 +1,9 @@
+//Author: Jeffrey Garfield
+//Version: 4/2/2018
+//Description: Its a pong game for leds using preset library and breadboard arrangement
+//includes a counter, and decrementing delay time as scores rise
+//Sort of a piece of shit functionality wise
+
 #include <stdio.h>
 #include <avr/io.h>
 #include "lcd.h"
@@ -7,51 +13,101 @@ static FILE lcd_stdout=FDEV_SETUP_STREAM(lcd_putc,NULL,_FDEV_SETUP_WRITE);
 #define PUSHED 1
 #define RIGHT_BUTTON ((PINA&_BV(PIN3))>>3)
 #define LEFT_BUTTON ((PINA&_BV(PIN0))>>0)
+#define RESET_BUTTON ((PINA&_BV(PIN2))>>2)
 
-#define RIGHTMOST 0b10000000
-#define LEFTMOST 0b00000001
+#define RIGHTMOST 0b1000000000
+#define LEFTMOST 0b000000001
 
 
 void newstate(void);
 void adjustLEDs(void);
 void setLEDs(int);
-
+void printScore(int, int);
 
 enum states{left_serve, right_serve, moving_left, moving_right};
 char state;
-char leds;
+int leds, lCount = 0, rCount = 0, lWait = 0, rWait = 0;
 
 int main (void){
-    int x = 0;
     lcd_init();
     stdout = &lcd_stdout;
 
     DDRD = 0xFF;
+    DDRC |= 0x03;
     DDRA = 0x10;
     PORTA |= 0x10;
 
+    printScore(0,0);
     state = left_serve;
     adjustLEDs();
     setLEDs(leds);
     while (1 ){
+        if((rCount == 15) || (lCount == 15)){
+            state = left_serve;
+            lCount = 0;
+            rCount = 0;
+            printScore(0,0);
+        }
+ _delay_ms(10);
         newstate();
         adjustLEDs();
         setLEDs(leds);
-        _delay_ms(1000);
-          x++;
+
+        if(state == moving_left){
+            for(int i = 0; i < (75 - rWait); i++){
+                _delay_ms(9);
+            }
+        } else if (state == moving_right){
+            for(int i = 0; i < (75 - lWait); i++){
+                _delay_ms(9);
+            }
+        }
+        else{
+            _delay_ms(50);
+        }
     }
 }
 void newstate(){
         if (PUSHED==LEFT_BUTTON){
             if (leds == LEFTMOST) state = moving_right;
-            else state = right_serve;
+            else if (state == right_serve);
+            else {
+                state = right_serve;
+                rCount++;
+                lWait += 2;
+                printScore(lCount, rCount);
+                _delay_ms(15);
+            }
         } else if (PUSHED == RIGHT_BUTTON) {
             if (leds == RIGHTMOST) state = moving_left;
-            else state = left_serve;
-        } else if ((LEFT_BUTTON != PUSHED) && (RIGHT_BUTTON != PUSHED) && (leds == 0x00)){              if (state == moving_right) state = left_serve;
-            else state = right_serve;
-    }
-    else{}
+            else if(state == left_serve);
+            else {
+                state = left_serve;
+                lCount++;
+                rWait += 2;
+                printScore(lCount, rCount);
+                _delay_ms(15);
+            }
+        } else if (((LEFT_BUTTON != PUSHED) && (RIGHT_BUTTON != PUSHED) && ((leds == 0x00)||(leds == 0b1000000000))) ||(PUSHED == RESET_BUTTON)){
+                if (state == moving_right){
+                    state = left_serve;
+                    lCount++;
+                    rWait += 2;
+                    printScore(lCount, rCount);
+                }
+                if (state == moving_left) {
+                    state = right_serve;
+                    rCount++;
+                    lWait += 2;
+                    printScore(lCount, rCount);
+                }
+                if (PUSHED == RESET_BUTTON) {
+                    state = left_serve;
+                    lCount = 0;
+                    rCount = 0;
+                    printScore(0, 0);
+                }
+        }  else{}
 }
 
 void adjustLEDs(){
@@ -80,8 +136,16 @@ void setLEDs (int leds){
     PORTD = temp;
     temp = leds;
     temp >>= 8;
+    temp = ~temp;
     temp &= 0x0003;
     PORTC &= 0xFFFC;
     PORTC |= temp;
 }
 
+void printScore(int l, int r){
+    lcd_init();
+    stdout = &lcd_stdout;
+    printf("Left:%d Right:%d\n", l, r);
+}
+
+        
