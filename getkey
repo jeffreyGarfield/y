@@ -1,0 +1,51 @@
+signed char getkey() {
+    int key = -1, i, j, row = 0, col = 0;
+    int maskRow = 0b00010000;
+    int maskCol = 0b00000001;
+
+    for (i = 4; i < 8; i++){
+        DDRA = maskRow << (i - 4);
+        PORTA = maskRow << (i - 4);
+        row = (i - 4);
+
+        for (j = 0; j < 4; j++){
+            if((PINA &(maskCol << j)) == (maskCol << j)) {
+                col = j;
+                key = 4 * row + col;
+            }
+        }
+    }
+    return key;
+}
+
+signed char mapkey (signed char key){
+    if((key < 0) || (key > 15)){
+        return key = -1;
+    }
+    signed char numkey[16] = {1, 2, 3, 10, 4, 5, 6, 11, 7, 8, 9 , 12, '*', 0, '#', 13};
+    key = numkey[key];
+    return key;
+}
+
+signed int getnum(){
+    int result = 0;
+    int negCount = 0;
+    while(1){
+        while( getkey() != -1);
+        nop();
+        while( getkey() == -1);
+
+        if(mapkey(getkey()) == '#'){
+            break;
+        }
+        if(mapkey(getkey()) <= 9){
+            result = (result * 10) + mapkey(getkey());
+        }
+        if(mapkey(getkey()) == '*'){
+            result /= 10;
+        }
+        if(mapkey(getkey()) == 10){
+            negCount++;
+        }
+        return result;
+  }
