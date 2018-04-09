@@ -1,0 +1,31 @@
+char getpw(char size, char password[]){
+    int buffer = 0;
+    while(1){
+        while(getkey() != -1){}
+        while(getkey() == -1){}
+        
+        if(buffer < size){
+            if(mapkey(getkey()) <= 13) {
+                password[buffer] = mapkey(getkey());
+                buffer++;
+            }
+        }
+        if((mapkey(getkey()) == '*')&&(buffer > 0)){
+            buffer--;
+            password[buffer] == NULL; 
+        }
+        if(mapkey(getkey()) == '#'){
+            return buffer;
+        }
+    }
+}
+
+char compareArrays(char SIZE, const char a[], const char b[]){
+ int i;
+    for(i = 0; i < SIZE; i++){
+        if (a[i] != b[i]){
+            return 0;
+        }
+    }
+    return 1;
+}
